@@ -1,0 +1,9 @@
+# read-host -prompt "Enter password to be encrypted in mypassword.txt " -assecurestring | convertfrom-securestring | out-file C:\Users\danhr\Documents\365securestring.txt
+$pass = cat C:\Users\danhr\Documents\365securestring.txt | convertto-securestring
+$mycred = new-object -typename System.Management.Automation.PSCredential -argumentlist "danhriscanu@danhriscanu.onmicrosoft.com",$pass
+Import-Module MSOnline
+$O365Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell -Authentication Basic -AllowRedirection -Credential $mycred
+$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ -Credential $mycred -Authentication Basic -AllowRedirection
+Import-PSSession $O365Session
+Import-PSSession $Session
+Connect-MsolService -Credential $mycred

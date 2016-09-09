@@ -1,0 +1,114 @@
+USER MANAGEMENT
+
+//Importing csv and creating users. please make sure that you change the path to match the path where you have saved the CSV file
+
+import-csv -Path "C:\users\danpatr\desktop\Demos\ImportUsers.csv" | ForEach-Object {New-Msoluser -UserPrincipalName $_.UserPrincipalName -FirstName $_.FirstName -LastName $_.LastName -Department $_.Department -Title $_.Title -Office $_.Office -PhoneNumber $_.PhoneNumber -Fax $_.Fax -StreetAddress $_.StreetAddress -MobilePhone $_.MobilePhone -City $_.city -State $_.State -Country $_.Country -DisplayName $_.DisplayName -PostalCode $_.PostalCode -UsageLocation "US" }
+
+//Remove all users from the "Technical Readiness Department"
+
+Get-Msoluser -all | where-object {$_.Department -like "*Technical*"} | Remove-MsolUser -force
+
+Get-MsolUser -ReturnDeletedUsers | Remove-Msoluser -RemoveFromRecycleBin -force
+
+LICENSE MANAGEMENT
+==========
+
+//get Account SKUs
+
+Get-MsolAccountSku
+
+//Access information about the SKUs
+
+(Get-MsolAccountSku).Count 
+
+(Get-MsolAccountSku).ServiceStatus
+
+(Get-MsolAccountSku)[2].ServiceStatus
+
+//Create license option for Sales users. They will have all services, except Sway, Yammer, Project
+
+$LoSales = New-MsolLicenseOptions -AccountSkuID danpatr10:ENTERPRISEPACK -DisabledPlans PROJECTWORKMANAGEMENT, SWAY, YAMMER_ENTERPRISE
+
+//Create license option for Finance. They will have only Exchange Online License 
+
+$LoFinance = New-MsolLicenseOptions -AccountSkuID danpatr10:ENTERPRISEPACK -DisabledPlans PROJECTWORKMANAGEMENT, SWAY, YAMMER_ENTERPRISE, RMS_S_ENTERPRISE, OFFICESUBSCRIPTION, MCOSTANDARD, SHAREPOINTWAC, SHAREPOINTENTERPRISE
+
+//Get all unlicensed Sales users and load them intor a variable
+$SalesUsers = Get-MsolUser -UnlicensedUsersOnly | where-object {$_.Department -like "*Sales*"}
+
+//Get all unlicensed Fincance users and load them into a variable
+$FinanceUsers = Get-MsolUser -UnlicensedUsersOnly | where-object {$_.Department -like "*Finance*"}
+
+//Assign the LOSales license options to the sales users 
+
+$SalesUsers | Foreach-Object {Set-MsolUserLicense -UserPrincipalName $_.UserPrincipalname -AddLicenses danpatr10:ENTERPRISEPACK -LicenseOptions $LoSales}
+
+//Assign the LoFinance license option to Finance users
+
+$FinanceUsers | Foreach-Object {Set-MsolUserLicense -UserPrincipalName $_.UserPrincipalname -AddLicenses danpatr10:ENTERPRISEPACK -LicenseOptions $LoFinance}
+================================
+
+SAMPLE FUNCTION: CHECK IF A USERS IS MEMBER OF A CERTAIN GROUP
+
+//Create a function to check if a user is member of a certain group. Copy and paste all the following text into Powershell
+
+ function IsMemberOfGroup($groupName, $userPrincipalName) { 
+
+$group = Get-MsolGroup -SearchString $groupName -All
+
+  if($group -eq $null){
+
+Write-Output $group
+
+Write-Host "Group not found"
+
+return
+
+}
+
+  if($group.count -gt 1){
+
+Write-Host "More than one matching group found"
+
+return
+
+}
+
+  $user =Get-MsolUser -UserPrincipalName $userPrincipalName
+
+  if($user -eq $null){
+
+Write-Host "User not found"
+
+return
+
+}
+
+  $groupMember = Get-MsolGroupMember -GroupObjectId $group.ObjectId -All | where {$_.ObjectId -eq $user.ObjectId}
+
+  if($groupMember -eq $null){
+
+Write-Output $false
+
+}else{
+
+write-Output $true
+
+}
+
+ }
+
+
+//Then run 
+
+IsMemberOfGroup "Liga AC Labs" sandra@danpatrascu.com
+
+//Output should be "True" in this case. 
+
+
+
+
+
+
+
+
